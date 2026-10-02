@@ -1,0 +1,18 @@
+# /etc/systemd/system/brelliozo-lead.service
+# Adjust WorkingDirectory to the site root on the server.
+[Unit]
+Description=Brelliozo lead submission proxy
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/brelliozo
+ExecStart=/usr/bin/node --env-file=.env server/submit-lead.mjs
+Restart=on-failure
+User=www-data
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

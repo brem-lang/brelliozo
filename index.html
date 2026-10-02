@@ -496,8 +496,12 @@
                 RICHIEDI IL TUO ACCESSO GRATUITO
               </div>
 
-              <form action="#" method="POST" class="f1t-form" data-type="auth" data-action="reg" novalidate="">
+              <form action="#" method="POST" id="regForm" class="f1t-form" data-type="auth" data-action="reg" novalidate="">
                 <div style="display: flex; flex-direction: column; gap: 12px;">
+
+                  <div style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;" aria-hidden="true">
+                    <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+                  </div>
 
                   <div class="field-wrapper">
                     <input type="text" name="fname" id="fname" placeholder="Nome" autocomplete="given-name" required="" style="width: 100%; box-sizing: border-box; border: 1px solid var(--border-color); font-family: 'Inter', sans-serif; border-radius: 2px; padding: 12px; font-size: 16px;">
@@ -527,7 +531,7 @@
                   <p id="regUnavailable" style="color: #dc2626; text-align: center"></p>
 
                   <div style="margin-top: 10px;">
-                    <button type="submit" class="kc-submit">
+                    <button type="submit" class="kc-submit" id="regSubmit">
                       RICHIEDI L'ACCESSO GRATUITO
                     </button>
                     <div style="text-align: center; margin-top: 8px; color: var(--text-muted); font-size: 11px; font-family: 'Inter', sans-serif;">
@@ -662,7 +666,6 @@
     <a href="#registration-form" id="mobile-sticky-cta">RICHIEDI L'ACCESSO GRATUITO</a>
 
     <script defer src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
       // Toggle Mobile Menu
@@ -678,15 +681,103 @@
       }
 
       // Initialize Phone Input once library is loaded
+      var iti = null;
       window.addEventListener('load', function() {
         var phoneInput = document.querySelector("#phone");
         if (phoneInput && window.intlTelInput) {
-          window.intlTelInput(phoneInput, {
+          iti = window.intlTelInput(phoneInput, {
             initialCountry: "it",
             preferredCountries: ["it", "ch", "sm", "va"],
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
           });
         }
+      });
+
+      // Registration form -> /api/submit-lead -> redirect to autologin_url
+      document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('regForm');
+        if (!form) return;
+
+        var submitBtn = document.getElementById('regSubmit');
+        var submitLabel = submitBtn.textContent;
+        var emailMsg = document.getElementById('emailValidation');
+        var phoneMsg = document.getElementById('phoneValidation');
+        var formMsg = document.getElementById('regUnavailable');
+        var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+        function setBusy(busy) {
+          submitBtn.disabled = busy;
+          submitBtn.textContent = busy ? 'INVIO IN CORSO…' : submitLabel;
+        }
+
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          emailMsg.textContent = '';
+          phoneMsg.textContent = '';
+          formMsg.textContent = '';
+
+          var firstname = form.fname.value.trim();
+          var lastname = form.lname.value.trim();
+          var email = form.email.value.trim();
+          var terms = form.terms.checked;
+          var valid = true;
+
+          if (!firstname || !lastname) {
+            formMsg.textContent = 'Inserisci nome e cognome.';
+            valid = false;
+          }
+          if (!EMAIL_RE.test(email)) {
+            emailMsg.textContent = 'Inserisci un indirizzo e-mail valido.';
+            valid = false;
+          }
+          var mobile = iti ? iti.getNumber() : form.phone.value.trim();
+          if (!mobile || (iti && !iti.isValidNumber())) {
+            phoneMsg.textContent = 'Inserisci un numero di telefono valido.';
+            valid = false;
+          }
+          if (!terms) {
+            formMsg.textContent = 'Devi accettare i Termini e Condizioni e l\'Informativa sulla Privacy.';
+            valid = false;
+          }
+          if (!valid) return;
+
+          var params = new URLSearchParams(window.location.search);
+          var payload = {
+            firstname: firstname,
+            lastname: lastname,
+            email: email,
+            mobile: mobile,
+            terms: terms,
+            click_id: params.get('click_id') || params.get('clickid') || '',
+            website: form.website.value
+          };
+
+          setBusy(true);
+          fetch('/api/submit-lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+            .then(function(res) { return res.json().catch(function() { return {}; }); })
+            .then(function(data) {
+              if (data.success && data.autologin_url) {
+                window.location.href = data.autologin_url;
+                return;
+              }
+              if (data.errors) {
+                if (data.errors.email) emailMsg.textContent = data.errors.email;
+                if (data.errors.mobile) phoneMsg.textContent = data.errors.mobile;
+                formMsg.textContent = data.errors.firstname || data.errors.lastname || data.errors.terms || '';
+              } else {
+                formMsg.textContent = data.message || 'Registrazione momentaneamente non disponibile. Riprova più tardi.';
+              }
+              setBusy(false);
+            })
+            .catch(function() {
+              formMsg.textContent = 'Errore di connessione. Riprova più tardi.';
+              setBusy(false);
+            });
+        });
       });
 
       // Sticky Mobile CTA visibility
@@ -714,10 +805,11 @@
           <div class="c-main">
             <div class="c-bubble">
               <div class="c-name" style="color: var(--brand-dark);">Ospite (Tu)</div>
-              <div class="c-text">${input.value.trim()}</div>
+              <div class="c-text"></div>
             </div>
           </div>
         `;
+        newComment.querySelector('.c-text').textContent = input.value.trim();
         list.prepend(newComment);
         input.value = "";
         document.getElementById('customCommentPopup').style.display = 'flex';

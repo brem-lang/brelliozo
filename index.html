@@ -299,9 +299,26 @@
             <img class="img-circle photoAuthor" src="http://162.35.185.84:8090/images/author_aaron.jpg" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #eee;" alt="Alessandro Russo" loading="lazy" decoding="async">
             <span style="color: #555; font-size: 13px;">
               Di <strong style="color: var(--brand-dark)">Alessandro Russo</strong> | Redazione Finanza <br>
-              Aggiornato il <span style="color: #888" id="dynamic-publish-date">30 settembre 2026, ore 08:26</span> • Tempo di lettura: 3 min.
+              Aggiornato il <span style="color: #888" id="dynamic-publish-date"></span> • Tempo di lettura: 3 min.
             </span>
           </div>
+
+<script>
+  (function () {
+    const el = document.getElementById("dynamic-publish-date");
+    if (!el) return;
+
+    const now = new Date();
+    const date = new Intl.DateTimeFormat("it-IT", {
+      day: "numeric", month: "long", year: "numeric"
+    }).format(now);
+    const time = new Intl.DateTimeFormat("it-IT", {
+      hour: "2-digit", minute: "2-digit", hour12: false
+    }).format(now);
+
+    el.textContent = `${date}, ore ${time}`;
+  })();
+</script>
 
           <div class="articleImageContainer" style="margin-bottom: 25px">
             <a class="download offer-link" href="#registration-form" style="display: block">

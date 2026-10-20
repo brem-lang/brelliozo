@@ -50,7 +50,7 @@ const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-n
 const COUNTRY_CODE = 'IT';
 const FUNNEL = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
-const UPSTREAM_TIMEOUT_MS = 10000;
+const UPSTREAM_TIMEOUT_MS = 30000;
 const RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 };
 const allowedHosts = ALLOWED_REDIRECT_HOSTS.split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
 
@@ -166,11 +166,6 @@ const server = http.createServer(async (req, res) => {
     return send(res, 400, { success: false, message: GENERIC_ERROR });
   }
   if (!input || typeof input !== 'object') return send(res, 400, { success: false, message: GENERIC_ERROR });
-
-  // Honeypot: bots fill hidden fields. Pretend success without forwarding.
-  if (typeof input.website === 'string' && input.website.trim() !== '') {
-    return send(res, 200, { success: true });
-  }
 
   const { data, errors } = validate(input);
   if (Object.keys(errors).length) return send(res, 422, { success: false, errors });

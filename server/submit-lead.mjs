@@ -49,6 +49,7 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
 const COUNTRY_CODE = 'IT';
 const FUNNEL = 'brelliozo';
+const OFFER_NAME = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
 const UPSTREAM_TIMEOUT_MS = 30000;
 const RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 };
@@ -178,6 +179,7 @@ const server = http.createServer(async (req, res) => {
     country_code: COUNTRY_CODE,
     ip_address: ip,
     funnel: FUNNEL,
+    offer_name: OFFER_NAME,
   };
   if (data.click_id) payload.click_id = data.click_id;
 

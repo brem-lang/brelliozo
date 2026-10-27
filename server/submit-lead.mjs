@@ -5,9 +5,35 @@ import fs from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import dns from 'node:dns/promises';
 
-// Same IT/ES/GB mobile rules the form uses in the browser.
-const PhoneCheck = createRequire(import.meta.url)('../images/phone-check.js');
+// Same phone (IT/ES/GB mobile) and email rules the form uses in the browser.
+const requireShared = createRequire(import.meta.url);
+const PhoneCheck = requireShared('../images/phone-check.js');
+const EmailCheck = requireShared('../images/email-check.js');
+
+// Can the email's domain receive mail (MX, or A as the RFC 5321 fallback)?
+// Only a definite "no such domain / no records" rejects; timeouts and DNS
+// errors let the lead through so real visitors are never blocked.
+const mailDomainCache = new Map();
+async function domainReceivesMail(email) {
+  const domain = email.slice(email.lastIndexOf('@') + 1);
+  if (mailDomainCache.has(domain)) return mailDomainCache.get(domain);
+  const lookup = async (type) => {
+    try {
+      const records = await (type === 'MX' ? dns.resolveMx(domain) : dns.resolve4(domain));
+      return records.length > 0;
+    } catch (err) {
+      return err.code === 'ENOTFOUND' || err.code === 'ENODATA' ? false : null; // null = unknown
+    }
+  };
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
+  const mx = await Promise.race([lookup('MX'), timeout]);
+  const result = mx === true ? true : mx === null ? true : (await Promise.race([lookup('A'), timeout])) !== false;
+  if (mailDomainCache.size > 5000) mailDomainCache.clear();
+  mailDomainCache.set(domain, result);
+  return result;
+}
 
 const {
   SUPABASE_URL,
@@ -73,7 +99,6 @@ const DUPLICATE_ERROR = 'Questo indirizzo e-mail o numero di telefono è già re
 const REJECTED_ERROR = 'Impossibile completare la registrazione. Verifica i dati o riprova più tardi.';
 
 const NAME_RE = /^[\p{L}\p{M}' .-]{1,50}$/u;
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 const CLICK_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
 // --- simple in-memory per-IP rate limiter ---
@@ -140,13 +165,16 @@ function validate(input) {
   const errors = {};
   if (!NAME_RE.test(data.firstname)) errors.firstname = 'Inserisci un nome valido.';
   if (!NAME_RE.test(data.lastname)) errors.lastname = 'Inserisci un cognome valido.';
-  if (!EMAIL_RE.test(data.email)) errors.email = 'Inserisci un indirizzo e-mail valido.';
+  // Typos are only suggested in the browser (the visitor may confirm); here
+  // format, throwaway and fake addresses are rejected.
+  const emailCheck = EmailCheck.check(data.email);
+  if (!emailCheck.ok && emailCheck.reason !== 'typo') errors.email = EmailCheck.MESSAGES[emailCheck.reason];
   const phone = PhoneCheck.check(data.mobile, 'IT');
   if (phone.ok) data.mobile = phone.e164;
   else errors.mobile = PhoneCheck.MESSAGES[phone.reason];
   if (input.terms !== true) errors.terms = 'Devi accettare i Termini e Condizioni.';
   if (data.click_id && !CLICK_ID_RE.test(data.click_id)) data.click_id = '';
-  return { data, errors, phoneReason: phone.reason };
+  return { data, errors, phoneReason: phone.reason, emailReason: errors.email ? emailCheck.reason : '' };
 }
 
 function safeRedirect(url) {
@@ -184,8 +212,13 @@ const server = http.createServer(async (req, res) => {
   }
   if (!input || typeof input !== 'object') return send(res, 400, { success: false, message: GENERIC_ERROR });
 
-  const { data, errors, phoneReason } = validate(input);
+  const { data, errors, phoneReason, emailReason } = validate(input);
+  if (!errors.email && !(await domainReceivesMail(data.email))) {
+    errors.email = EmailCheck.MESSAGES.domain;
+    console.warn('[submit-lead] email rejected reason=domain');
+  }
   if (phoneReason) console.warn(`[submit-lead] phone rejected reason=${phoneReason}`); // reason only, never the number
+  if (emailReason) console.warn(`[submit-lead] email rejected reason=${emailReason}`); // reason only, never the address
   if (Object.keys(errors).length) return send(res, 422, { success: false, errors });
 
   const payload = {

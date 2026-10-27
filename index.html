@@ -4,9 +4,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
-    <script src="images/i18n-dict.js?v=a83aa583"></script>
+    <script src="images/i18n-dict.js?v=b9b23c87"></script>
     <script src="images/lang-switcher.js?v=c81d0203"></script>
     <script src="images/phone-check.js?v=e48844cb"></script>
+    <script src="images/email-check.js?v=5b561811"></script>
     <title>Brelliozo IA – La tecnologia intelligente per i tuoi risparmi</title>
 
     <link href="images/css.css" rel="stylesheet" type="text/css">
@@ -725,7 +726,8 @@
         var emailMsg = document.getElementById('emailValidation');
         var phoneMsg = document.getElementById('phoneValidation');
         var formMsg = document.getElementById('regUnavailable');
-        var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        // A suggested typo fix is shown once; submitting the same address again keeps it.
+        var typoShownFor = '';
 
         function setBusy(busy) {
           submitBtn.disabled = busy;
@@ -748,8 +750,20 @@
             formMsg.textContent = I18N.t('Inserisci nome e cognome.');
             valid = false;
           }
-          if (!EMAIL_RE.test(email)) {
-            emailMsg.textContent = I18N.t('Inserisci un indirizzo e-mail valido.');
+          var emailCheck = EmailCheck.check(email);
+          if (emailCheck.ok) {
+            email = emailCheck.email;
+          } else if (emailCheck.reason === 'typo' && typoShownFor === email) {
+            email = email.toLowerCase();
+          } else if (emailCheck.reason === 'typo') {
+            typoShownFor = email;
+            EmailCheck.renderSuggestion(emailMsg, I18N.t, emailCheck.suggestion, function (fixed) {
+              form.email.value = fixed;
+              emailMsg.textContent = '';
+            });
+            valid = false;
+          } else {
+            emailMsg.textContent = I18N.t(EmailCheck.MESSAGES[emailCheck.reason]);
             valid = false;
           }
           // Our own IT/ES/GB mobile rules (phone-check.js), so the check never

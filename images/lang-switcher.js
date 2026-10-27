@@ -35,13 +35,19 @@
     var q = null;
     try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
     if (q && LANGS.indexOf(q) !== -1) { save(q); return q; }
+    var c = document.cookie.match(/(?:^|;\s*)site_lang=([a-z]{2})/);
+    if (c && LANGS.indexOf(c[1]) !== -1) return c[1];
     try {
       var s = localStorage.getItem(STORE_KEY);
       if (s && LANGS.indexOf(s) !== -1) return s;
     } catch (e) {}
     return 'it';
   }
-  function save(l) { try { localStorage.setItem(STORE_KEY, l); } catch (e) {} }
+  // Cookie is shared with the other sites on this domain (vettro reads it server-side).
+  function save(l) {
+    document.cookie = STORE_KEY + '=' + l + '; path=/; max-age=31536000; SameSite=Lax';
+    try { localStorage.setItem(STORE_KEY, l); } catch (e) {}
+  }
 
   var lang = readLang();
   var listeners = [];

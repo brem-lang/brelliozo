@@ -7,6 +7,10 @@
  * alt / title / aria-label attributes and <title> are swapped in place, so
  * switching back to Italian restores the original markup.
  *
+ * Language order: ?lang= in the URL, then the visitor's own choice (site_lang
+ * cookie / localStorage), then their country (site_geo cookie: IT → it,
+ * ES → es, anything else or unknown → en).
+ *
  * Page scripts use I18N.t('italian string') for messages they create, and
  * I18N.onChange(fn) to re-render dynamic text (dates, counters) per language.
  * Elements marked data-i18n-dyn are skipped (their content is script-owned);
@@ -41,7 +45,11 @@
       var s = localStorage.getItem(STORE_KEY);
       if (s && LANGS.indexOf(s) !== -1) return s;
     } catch (e) {}
-    return 'it';
+    // No choice yet: use the visitor's country, which nginx copies from
+    // Cloudflare's CF-IPCountry header into the site_geo cookie.
+    var g = document.cookie.match(/(?:^|;\s*)site_geo=([A-Za-z]{2})/);
+    var country = g ? g[1].toUpperCase() : '';
+    return country === 'IT' ? 'it' : country === 'ES' ? 'es' : 'en';
   }
   // Cookie is shared with the other sites on this domain (vettro reads it server-side).
   function save(l) {
@@ -288,6 +296,8 @@
     t: function (src) { return t(src); },
     get lang() { return lang; },
     locale: function () { return LOCALES[lang]; },
+    // Lead country follows the language in use: IT / ES / GB.
+    country: function () { return { it: 'IT', es: 'ES', en: 'GB' }[lang]; },
     set: setLang,
     onChange: function (fn) { listeners.push(fn); },
     rebind: rebind,

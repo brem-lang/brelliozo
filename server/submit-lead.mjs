@@ -47,7 +47,8 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 }
 
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
-const COUNTRY_CODE = 'IT';
+// Lead country follows the page language the visitor submitted in.
+const COUNTRY_BY_LANG = { it: 'IT', es: 'ES', en: 'GB' };
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
@@ -122,6 +123,7 @@ function validate(input) {
     email: str(input.email).toLowerCase(),
     mobile: str(input.mobile),
     click_id: str(input.click_id),
+    country_code: COUNTRY_BY_LANG[str(input.lang)] || 'IT',
   };
   const errors = {};
   if (!NAME_RE.test(data.firstname)) errors.firstname = 'Inserisci un nome valido.';
@@ -176,7 +178,7 @@ const server = http.createServer(async (req, res) => {
     lastname: data.lastname,
     email: data.email,
     mobile: data.mobile,
-    country_code: COUNTRY_CODE,
+    country_code: data.country_code,
     ip_address: ip,
     funnel: FUNNEL,
     offer_name: OFFER_NAME,

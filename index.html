@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
     <script src="images/i18n-dict.js?v=dc20d696"></script>
-    <script src="images/lang-switcher.js?v=8efad0e5"></script>
+    <script src="images/lang-switcher.js?v=1c8bbf11"></script>
     <title>Brelliozo IA – La tecnologia intelligente per i tuoi risparmi</title>
 
     <link href="images/css.css" rel="stylesheet" type="text/css">
@@ -767,7 +767,8 @@
             email: email,
             mobile: mobile,
             terms: terms,
-            click_id: params.get('click_id') || params.get('clickid') || ''
+            click_id: params.get('click_id') || params.get('clickid') || '',
+            lang: I18N.lang
           };
 
           setBusy(true);

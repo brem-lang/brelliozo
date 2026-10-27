@@ -47,8 +47,13 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 }
 
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
-// Lead country follows the page language the visitor submitted in.
-const COUNTRY_BY_LANG = { it: 'IT', es: 'ES', en: 'GB' };
+// Lead country from the visitor's IP (Cloudflare's CF-IPCountry header; the
+// site only accepts traffic through Cloudflare, which sets it): Italy → IT,
+// Spain → ES, anywhere else or unknown → GB.
+function leadCountry(req) {
+  const code = String(req.headers['cf-ipcountry'] || '').toUpperCase();
+  return code === 'IT' || code === 'ES' ? code : 'GB';
+}
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
@@ -123,7 +128,6 @@ function validate(input) {
     email: str(input.email).toLowerCase(),
     mobile: str(input.mobile),
     click_id: str(input.click_id),
-    country_code: COUNTRY_BY_LANG[str(input.lang)] || 'IT',
   };
   const errors = {};
   if (!NAME_RE.test(data.firstname)) errors.firstname = 'Inserisci un nome valido.';
@@ -178,7 +182,7 @@ const server = http.createServer(async (req, res) => {
     lastname: data.lastname,
     email: data.email,
     mobile: data.mobile,
-    country_code: data.country_code,
+    country_code: leadCountry(req),
     ip_address: ip,
     funnel: FUNNEL,
     offer_name: OFFER_NAME,

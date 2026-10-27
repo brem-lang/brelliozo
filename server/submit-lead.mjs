@@ -49,10 +49,13 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
 // Lead country from the visitor's IP (Cloudflare's CF-IPCountry header; the
 // site only accepts traffic through Cloudflare, which sets it): Italy → IT,
-// Spain → ES, anywhere else or unknown → GB.
+// Spain → ES, anywhere else or unknown → LEAD_COUNTRY_FALLBACK (default GB).
+const FALLBACK_COUNTRY = /^[A-Z]{2}$/.test(process.env.LEAD_COUNTRY_FALLBACK || '')
+  ? process.env.LEAD_COUNTRY_FALLBACK
+  : 'GB';
 function leadCountry(req) {
   const code = String(req.headers['cf-ipcountry'] || '').toUpperCase();
-  return code === 'IT' || code === 'ES' ? code : 'GB';
+  return code === 'IT' || code === 'ES' ? code : FALLBACK_COUNTRY;
 }
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';
@@ -62,6 +65,8 @@ const RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 };
 const allowedHosts = ALLOWED_REDIRECT_HOSTS.split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
 
 const GENERIC_ERROR = 'Registrazione momentaneamente non disponibile. Riprova più tardi.';
+const DUPLICATE_ERROR = 'Questo indirizzo e-mail o numero di telefono è già registrato.';
+const REJECTED_ERROR = 'Impossibile completare la registrazione. Verifica i dati o riprova più tardi.';
 
 const NAME_RE = /^[\p{L}\p{M}' .-]{1,50}$/u;
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
@@ -198,22 +203,27 @@ const server = http.createServer(async (req, res) => {
     });
     const result = await upstream.json().catch(() => null);
 
+    // One line per lead, no key and no personal data. 422/409/503 rather than
+    // 502/504, which Cloudflare would replace with its own "Bad gateway" page.
+    const sent = `sent country_code=${payload.country_code} click_id=${payload.click_id || '-'}`;
     if (!upstream.ok || !result || result.success !== true) {
-      // Log only non-sensitive diagnostics (no key, no PII).
-      console.warn(`[submit-lead] upstream rejected: status=${upstream.status} request_id=${result?.request_id ?? 'n/a'}`);
-      return send(res, 502, { success: false, message: GENERIC_ERROR });
+      const apiMessage = typeof result?.message === 'string' ? result.message.slice(0, 200) : 'non-JSON response';
+      console.warn(`[submit-lead] ${sent} → rejected status=${upstream.status} request_id=${result?.request_id ?? 'n/a'} message="${apiMessage}"`);
+      if (upstream.status === 409) return send(res, 409, { success: false, message: DUPLICATE_ERROR });
+      return send(res, 422, { success: false, message: REJECTED_ERROR });
     }
 
     const redirect = safeRedirect(result.autologin_url);
     if (!redirect) {
-      console.warn(`[submit-lead] invalid autologin_url for lead_id=${result.lead_id ?? 'n/a'}`);
-      return send(res, 502, { success: false, message: GENERIC_ERROR });
+      console.warn(`[submit-lead] ${sent} → accepted lead_id=${result.lead_id ?? 'n/a'} but autologin_url host is not allowed`);
+      return send(res, 500, { success: false, message: GENERIC_ERROR });
     }
 
+    console.log(`[submit-lead] ${sent} → accepted lead_id=${result.lead_id ?? 'n/a'}`);
     return send(res, 200, { success: true, autologin_url: redirect });
   } catch (err) {
-    console.error(`[submit-lead] upstream error: ${err.name}`);
-    return send(res, 504, { success: false, message: GENERIC_ERROR });
+    console.error(`[submit-lead] sent country_code=${payload.country_code} → upstream error: ${err.name}`);
+    return send(res, 503, { success: false, message: GENERIC_ERROR });
   }
 });
 

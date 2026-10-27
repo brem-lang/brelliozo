@@ -7,8 +7,8 @@
  * alt / title / aria-label attributes and <title> are swapped in place, so
  * switching back to Italian restores the original markup.
  *
- * Language order: ?lang= in the URL, then the visitor's own choice (site_lang
- * cookie / localStorage), then their country (site_geo cookie: IT → it,
+ * Language order: ?lang= in the URL (?lang=auto clears a choice), then the
+ * visitor's own choice this browser session (site_lang_s cookie), then their country (site_geo cookie: IT → it,
  * ES → es, anything else or unknown → en).
  *
  * Page scripts use I18N.t('italian string') for messages they create, and
@@ -22,7 +22,11 @@
   var LANGS = ['it', 'es', 'en'];
   var LOCALES = { it: 'it-IT', es: 'es-ES', en: 'en-GB' };
   var NAMES = { it: 'Italiano', es: 'Español', en: 'English' };
-  var STORE_KEY = 'site_lang';
+  // Session cookie shared with the other sites on this domain (vettro reads it
+  // server-side). It ends when the browser closes, so each new visit starts
+  // from the visitor's location again.
+  var STORE_KEY = 'site_lang_s';
+  var OLD_KEY = 'site_lang'; // year-long cookie + localStorage used before
   var ATTRS = ['placeholder', 'alt', 'title', 'aria-label'];
   var INLINE = /^(A|ABBR|B|BR|CITE|CODE|EM|I|IMG|MARK|S|SMALL|SPAN|STRONG|SUB|SUP|U|TIME|WBR|LABEL)$/;
   var SKIP = /^(SCRIPT|STYLE|NOSCRIPT|SVG|IFRAME|TEXTAREA|TEMPLATE|CANVAS|VIDEO)$/;
@@ -36,25 +40,26 @@
   function norm(s) { return String(s).replace(/[\u200B\uFEFF]/g, '').replace(/\s+/g, ' ').trim(); }
 
   function readLang() {
+    // Drop choices saved by the old year-long cookie / localStorage.
+    document.cookie = OLD_KEY + '=; path=/; max-age=0; SameSite=Lax';
+    try { localStorage.removeItem(OLD_KEY); } catch (e) {}
     var q = null;
     try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
     if (q && LANGS.indexOf(q) !== -1) { save(q); return q; }
-    var c = document.cookie.match(/(?:^|;\s*)site_lang=([a-z]{2})/);
-    if (c && LANGS.indexOf(c[1]) !== -1) return c[1];
-    try {
-      var s = localStorage.getItem(STORE_KEY);
-      if (s && LANGS.indexOf(s) !== -1) return s;
-    } catch (e) {}
-    // No choice yet: use the visitor's country, which nginx copies from
+    // ?lang=auto forgets the choice and goes back to the location.
+    if (q === 'auto') document.cookie = STORE_KEY + '=; path=/; max-age=0; SameSite=Lax';
+    else {
+      var c = document.cookie.match(/(?:^|;\s*)site_lang_s=([a-z]{2})/);
+      if (c && LANGS.indexOf(c[1]) !== -1) return c[1];
+    }
+    // No choice this visit: use the visitor's country, which nginx copies from
     // Cloudflare's CF-IPCountry header into the site_geo cookie.
     var g = document.cookie.match(/(?:^|;\s*)site_geo=([A-Za-z]{2})/);
     var country = g ? g[1].toUpperCase() : '';
     return country === 'IT' ? 'it' : country === 'ES' ? 'es' : 'en';
   }
-  // Cookie is shared with the other sites on this domain (vettro reads it server-side).
   function save(l) {
-    document.cookie = STORE_KEY + '=' + l + '; path=/; max-age=31536000; SameSite=Lax';
-    try { localStorage.setItem(STORE_KEY, l); } catch (e) {}
+    document.cookie = STORE_KEY + '=' + l + '; path=/; SameSite=Lax';
   }
 
   var lang = readLang();
@@ -188,6 +193,11 @@
     if (LANGS.indexOf(l) === -1) return;
     lang = l;
     save(l);
+    // A ?lang= in the URL would win again on reload; drop it.
+    try {
+      var u = new URL(location.href);
+      if (u.searchParams.has('lang')) { u.searchParams.delete('lang'); history.replaceState(history.state, '', u); }
+    } catch (e) {}
     root.lang = l;
     apply(l);
     renderSwitchers();

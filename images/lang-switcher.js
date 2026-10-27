@@ -29,7 +29,7 @@
     en: '<svg class="ls-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
   };
 
-  function norm(s) { return String(s).replace(/\s+/g, ' ').trim(); }
+  function norm(s) { return String(s).replace(/[\u200B\uFEFF]/g, '').replace(/\s+/g, ' ').trim(); }
 
   function readLang() {
     var q = null;
@@ -144,6 +144,32 @@
   }
   var titleSrc = null;
 
+  // A page script replaced oldRoot with a structurally identical newRoot
+  // (e.g. cloneNode to drop listeners): point our units at the new nodes.
+  function rebind(oldRoot, newRoot) {
+    if (!units) return;
+    function pathOf(n) {
+      var path = [];
+      while (n && n !== oldRoot) {
+        if (!n.parentNode) return null;
+        path.unshift(Array.prototype.indexOf.call(n.parentNode.childNodes, n));
+        n = n.parentNode;
+      }
+      return n === oldRoot ? path : null;
+    }
+    function follow(path) {
+      var n = newRoot;
+      for (var i = 0; i < path.length && n; i++) n = n.childNodes[path[i]];
+      return n;
+    }
+    for (var i = 0; i < units.length; i++) {
+      var u = units[i];
+      var key = u.kind === 'text' ? 'node' : u.kind === 'attr-in' ? 'parent' : 'el';
+      var p = pathOf(u[key]);
+      if (p) { var m = follow(p); if (m) u[key] = m; }
+    }
+  }
+
   function setLang(l) {
     if (LANGS.indexOf(l) === -1) return;
     lang = l;
@@ -167,6 +193,8 @@
     '.ls-caret{font-size:10px;opacity:.6}' +
     '.ls-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:150px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12)}' +
     '.ls.open .ls-menu{display:block}' +
+    '.ls-menu li{margin:0;padding:0;list-style:none;line-height:1.2}' +
+    '.ls button{margin:0;font-family:inherit;line-height:1.2;text-transform:none;letter-spacing:normal;box-sizing:border-box}' +
     '.ls-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:5px;background:none;color:#1a1a1a;font-size:14px;font-weight:500;text-align:left;cursor:pointer}' +
     '.ls-menu button:hover,.ls-menu button:focus-visible{background:#f2f2f2}' +
     '.ls-menu .ls-check{margin-left:auto;font-weight:700}' +
@@ -256,6 +284,7 @@
     locale: function () { return LOCALES[lang]; },
     set: setLang,
     onChange: function (fn) { listeners.push(fn); },
+    rebind: rebind,
     _collect: collect,
     _norm: norm
   };

@@ -4,8 +4,9 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
-    <script src="images/i18n-dict.js?v=c1029673"></script>
+    <script src="images/i18n-dict.js?v=a83aa583"></script>
     <script src="images/lang-switcher.js?v=c81d0203"></script>
+    <script src="images/phone-check.js?v=e48844cb"></script>
     <title>Brelliozo IA – La tecnologia intelligente per i tuoi risparmi</title>
 
     <link href="images/css.css" rel="stylesheet" type="text/css">
@@ -525,7 +526,7 @@
                   </div>
 
                   <div class="field-wrapper">
-                    <input type="tel" name="phone" id="phone" autocomplete="tel" required="" style="width: 100%; box-sizing: border-box; border: 1px solid var(--border-color); font-family: Inter, sans-serif; border-radius: 2px; padding: 12px 12px 12px 52px; font-size: 16px;" placeholder="312 345 6789">
+                    <input type="tel" name="phone" id="phone" autocomplete="tel" required="" style="width: 100%; box-sizing: border-box; border: 1px solid var(--border-color); font-family: Inter, sans-serif; border-radius: 2px; padding: 12px 12px 12px 52px; font-size: 16px;">
                     <p class="field-invalid" id="phoneValidation" style="color: #dc2626; font-size: 12px; margin: 4px 0 0 0"></p>
                   </div>
 
@@ -706,7 +707,9 @@
         if (phoneInput && window.intlTelInput) {
           iti = window.intlTelInput(phoneInput, {
             initialCountry: PHONE_COUNTRY[I18N.lang],
-            preferredCountries: ["it", "es", "gb", "ch", "sm", "va"],
+            // Only Italian, Spanish and UK mobile numbers are accepted.
+            onlyCountries: ["it", "es", "gb"],
+            preferredCountries: [],
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
           });
         }
@@ -749,9 +752,13 @@
             emailMsg.textContent = I18N.t('Inserisci un indirizzo e-mail valido.');
             valid = false;
           }
-          var mobile = iti ? iti.getNumber() : form.phone.value.trim();
-          if (!mobile || (iti && !iti.isValidNumber())) {
-            phoneMsg.textContent = I18N.t('Inserisci un numero di telefono valido.');
+          // Our own IT/ES/GB mobile rules (phone-check.js), so the check never
+          // depends on intl-tel-input's utils.js having loaded from the CDN.
+          var selected = iti ? iti.getSelectedCountryData().iso2 : PHONE_COUNTRY[I18N.lang];
+          var phoneCheck = PhoneCheck.check(form.phone.value, String(selected || 'it').toUpperCase());
+          var mobile = phoneCheck.e164;
+          if (!phoneCheck.ok) {
+            phoneMsg.textContent = I18N.t(PhoneCheck.MESSAGES[phoneCheck.reason]);
             valid = false;
           }
           if (!terms) {

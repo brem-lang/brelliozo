@@ -4,6 +4,10 @@ import http from 'node:http';
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+// Same IT/ES/GB mobile rules the form uses in the browser.
+const PhoneCheck = createRequire(import.meta.url)('../images/phone-check.js');
 
 const {
   SUPABASE_URL,
@@ -70,7 +74,6 @@ const REJECTED_ERROR = 'Impossibile completare la registrazione. Verifica i dati
 
 const NAME_RE = /^[\p{L}\p{M}' .-]{1,50}$/u;
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
-const PHONE_RE = /^\+[1-9]\d{7,14}$/;
 const CLICK_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
 // --- simple in-memory per-IP rate limiter ---
@@ -138,10 +141,12 @@ function validate(input) {
   if (!NAME_RE.test(data.firstname)) errors.firstname = 'Inserisci un nome valido.';
   if (!NAME_RE.test(data.lastname)) errors.lastname = 'Inserisci un cognome valido.';
   if (!EMAIL_RE.test(data.email)) errors.email = 'Inserisci un indirizzo e-mail valido.';
-  if (!PHONE_RE.test(data.mobile)) errors.mobile = 'Inserisci un numero di telefono valido.';
+  const phone = PhoneCheck.check(data.mobile, 'IT');
+  if (phone.ok) data.mobile = phone.e164;
+  else errors.mobile = PhoneCheck.MESSAGES[phone.reason];
   if (input.terms !== true) errors.terms = 'Devi accettare i Termini e Condizioni.';
   if (data.click_id && !CLICK_ID_RE.test(data.click_id)) data.click_id = '';
-  return { data, errors };
+  return { data, errors, phoneReason: phone.reason };
 }
 
 function safeRedirect(url) {
@@ -179,7 +184,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (!input || typeof input !== 'object') return send(res, 400, { success: false, message: GENERIC_ERROR });
 
-  const { data, errors } = validate(input);
+  const { data, errors, phoneReason } = validate(input);
+  if (phoneReason) console.warn(`[submit-lead] phone rejected reason=${phoneReason}`); // reason only, never the number
   if (Object.keys(errors).length) return send(res, 422, { success: false, errors });
 
   const payload = {

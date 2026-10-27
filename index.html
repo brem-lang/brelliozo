@@ -4,6 +4,8 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <script src="images/i18n-dict.js"></script>
+    <script src="images/lang-switcher.js"></script>
     <title>Brelliozo IA – La tecnologia intelligente per i tuoi risparmi</title>
 
     <link href="images/css.css" rel="stylesheet" type="text/css">
@@ -84,6 +86,8 @@
       .cta-button { display: inline-block; background-color: var(--brand-dark) !important; color: var(--white) !important; font-weight: 600; font-size: 0.85rem; padding: 0.6rem 1.2rem; border-radius: 2px !important; text-decoration: none; transition: var(--transition); cursor: pointer; text-transform: uppercase; }
       .cta-button:hover { background-color: var(--brand-accent) !important; color: white; }
 
+      .lang-slot { margin-left: auto; margin-right: 8px; }
+      @media (min-width: 768px) { .lang-slot { margin-left: 16px; margin-right: 0; order: 3; } .cta-container { order: 4; margin-left: 12px; } }
       .hamburger { display: block; cursor: pointer; padding: 8px; z-index: 2001; }
       .hamburger svg { width: 28px; height: 28px; stroke: var(--secondary); }
 
@@ -250,6 +254,8 @@
           <a href="#registration-form" class="cta-button">Inizia ora</a>
         </div>
 
+        <div class="lang-slot" data-lang-switcher="dropdown"></div>
+
         <div class="hamburger" onclick="toggleMobileMenu()">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -261,7 +267,7 @@
 
       <div class="ticker-wrapper">
         <div class="tradingview-widget-container" style="width: 100%; height: 50px; overflow: hidden; pointer-events: none;">
-          <iframe scrolling="no" allowtransparency="true" frameborder="0" src="https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=it#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22MIL%3AFTSEMIB%22%2C%22title%22%3A%22FTSE%20MIB%22%7D%2C%7B%22proName%22%3A%22MIL%3AENEL%22%2C%22title%22%3A%22Enel%20S.p.A.%22%7D%2C%7B%22proName%22%3A%22MIL%3ARACE%22%2C%22title%22%3A%22Ferrari%22%7D%2C%7B%22proName%22%3A%22MIL%3AUCG%22%2C%22title%22%3A%22UniCredit%22%7D%2C%7B%22proName%22%3A%22MIL%3AISP%22%2C%22title%22%3A%22Intesa%20Sanpaolo%22%7D%2C%7B%22proName%22%3A%22MIL%3AENI%22%2C%22title%22%3A%22Eni%22%7D%5D%2C%22showSymbolLogo%22%3Atrue%2C%22isTransparent%22%3Atrue%2C%22displayMode%22%3A%22adaptive%22%2C%22colorTheme%22%3A%22light%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A50%7D" style="user-select: none; box-sizing: border-box; display: block; height: 50px; width: 100%;"></iframe>
+          <iframe id="tv-ticker" scrolling="no" allowtransparency="true" frameborder="0" src="https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=it#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22MIL%3AFTSEMIB%22%2C%22title%22%3A%22FTSE%20MIB%22%7D%2C%7B%22proName%22%3A%22MIL%3AENEL%22%2C%22title%22%3A%22Enel%20S.p.A.%22%7D%2C%7B%22proName%22%3A%22MIL%3ARACE%22%2C%22title%22%3A%22Ferrari%22%7D%2C%7B%22proName%22%3A%22MIL%3AUCG%22%2C%22title%22%3A%22UniCredit%22%7D%2C%7B%22proName%22%3A%22MIL%3AISP%22%2C%22title%22%3A%22Intesa%20Sanpaolo%22%7D%2C%7B%22proName%22%3A%22MIL%3AENI%22%2C%22title%22%3A%22Eni%22%7D%5D%2C%22showSymbolLogo%22%3Atrue%2C%22isTransparent%22%3Atrue%2C%22displayMode%22%3A%22adaptive%22%2C%22colorTheme%22%3A%22light%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A50%7D" style="user-select: none; box-sizing: border-box; display: block; height: 50px; width: 100%;"></iframe>
         </div>
       </div>
     </header>
@@ -278,6 +284,7 @@
         <a href="#interview" onclick="toggleMobileMenu()">Il nostro test</a>
         <a href="#erfahrungen" onclick="toggleMobileMenu()">Domande e risposte</a>
         <a href="#registration-form" onclick="toggleMobileMenu()" class="menu-cta-btn">ACCESSO GRATUITO</a>
+        <div data-lang-switcher="row"></div>
       </div>
     </div>
 
@@ -299,7 +306,7 @@
             <img class="img-circle photoAuthor" src="images/author_aaron.jpg" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #eee;" alt="Alessandro Russo" loading="lazy" decoding="async">
             <span style="color: #555; font-size: 13px;">
               Di <strong style="color: var(--brand-dark)">Alessandro Russo</strong> | Redazione Finanza <br>
-              Aggiornato il <span style="color: #888" id="dynamic-publish-date"></span> • Tempo di lettura: 3 min.
+              Aggiornato il <span style="color: #888" id="dynamic-publish-date" data-i18n-dyn></span> • Tempo di lettura: 3 min.
             </span>
           </div>
 
@@ -309,14 +316,18 @@
     if (!el) return;
 
     const now = new Date();
-    const date = new Intl.DateTimeFormat("it-IT", {
-      day: "numeric", month: "long", year: "numeric"
-    }).format(now);
-    const time = new Intl.DateTimeFormat("it-IT", {
-      hour: "2-digit", minute: "2-digit", hour12: false
-    }).format(now);
-
-    el.textContent = `${date}, ore ${time}`;
+    function render() {
+      const locale = I18N.locale();
+      const date = new Intl.DateTimeFormat(locale, {
+        day: "numeric", month: "long", year: "numeric"
+      }).format(now);
+      const time = new Intl.DateTimeFormat(locale, {
+        hour: "2-digit", minute: "2-digit", hour12: false
+      }).format(now);
+      el.textContent = `${date}, ${I18N.t("ore")} ${time}`;
+    }
+    render();
+    I18N.onChange(render);
   })();
 </script>
 
@@ -478,7 +489,7 @@
 
           <div class="warning-box">
             <strong class="warning-box-title">Chiusura delle registrazioni per l'alta richiesta:</strong>
-            Nella fase di lancio il numero di nuovi accessi al giorno è limitato; i posti per oggi, <strong><span id="fomo-date-display">30/09/2026</span></strong>, sono ancora disponibili. Dopo l'invio del modulo il tuo consulente in italiano ti chiama di solito <strong>entro pochi minuti</strong> per attivare l'accesso — <strong>tieni il telefono a portata di mano.</strong>
+            Nella fase di lancio il numero di nuovi accessi al giorno è limitato; i posti per oggi, <strong><span id="fomo-date-display" data-i18n-dyn>30/09/2026</span></strong>, sono ancora disponibili. Dopo l'invio del modulo il tuo consulente in italiano ti chiama di solito <strong>entro pochi minuti</strong> per attivare l'accesso — <strong>tieni il telefono a portata di mano.</strong>
           </div>
 
           <div style="background-color: var(--bg-contrast); border-left: 5px solid #16a34a; padding: 15px 18px; margin-bottom: 25px; color: var(--text-main); font-size: 14px; line-height: 1.5;">
@@ -654,7 +665,7 @@
             <strong>Avviso di Rischio sui CFD:</strong> I CFD sono strumenti complessi e comportano un elevato rischio di perdere denaro rapidamente a causa della leva finanziaria. Il 67% dei conti degli investitori al dettaglio perde denaro quando fa trading di CFD.
           </p>
           <div style="font-size: 11px; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-top: 20px; text-align: center;">
-            <p>© <span class="currentYear">2026</span> BRELLIOZO IA. TUTTI I DIRITTI RISERVATI.</p>
+            <p>© <span class="currentYear" data-i18n-dyn>2026</span> BRELLIOZO IA. TUTTI I DIRITTI RISERVATI.</p>
           </div>
         </div>
       </div>
@@ -677,14 +688,25 @@
         }
       }
 
+      // Phone country and TradingView ticker follow the selected language
+      var PHONE_COUNTRY = { it: "it", es: "es", en: "gb" };
+      I18N.onChange(function(lang) {
+        if (iti && !document.querySelector("#phone").value.trim()) iti.setCountry(PHONE_COUNTRY[lang]);
+        var tv = document.getElementById("tv-ticker");
+        if (tv) {
+          var src = tv.getAttribute("src").replace(/locale=[a-z]+/, "locale=" + lang);
+          if (src !== tv.getAttribute("src")) tv.setAttribute("src", src);
+        }
+      });
+
       // Initialize Phone Input once library is loaded
       var iti = null;
       window.addEventListener('load', function() {
         var phoneInput = document.querySelector("#phone");
         if (phoneInput && window.intlTelInput) {
           iti = window.intlTelInput(phoneInput, {
-            initialCountry: "it",
-            preferredCountries: ["it", "ch", "sm", "va"],
+            initialCountry: PHONE_COUNTRY[I18N.lang],
+            preferredCountries: ["it", "es", "gb", "ch", "sm", "va"],
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
           });
         }
@@ -696,7 +718,7 @@
         if (!form) return;
 
         var submitBtn = document.getElementById('regSubmit');
-        var submitLabel = submitBtn.textContent;
+        var submitLabel = 'RICHIEDI L\'ACCESSO GRATUITO';
         var emailMsg = document.getElementById('emailValidation');
         var phoneMsg = document.getElementById('phoneValidation');
         var formMsg = document.getElementById('regUnavailable');
@@ -704,7 +726,7 @@
 
         function setBusy(busy) {
           submitBtn.disabled = busy;
-          submitBtn.textContent = busy ? 'INVIO IN CORSO…' : submitLabel;
+          submitBtn.textContent = I18N.t(busy ? 'INVIO IN CORSO…' : submitLabel);
         }
 
         form.addEventListener('submit', function(e) {
@@ -720,20 +742,20 @@
           var valid = true;
 
           if (!firstname || !lastname) {
-            formMsg.textContent = 'Inserisci nome e cognome.';
+            formMsg.textContent = I18N.t('Inserisci nome e cognome.');
             valid = false;
           }
           if (!EMAIL_RE.test(email)) {
-            emailMsg.textContent = 'Inserisci un indirizzo e-mail valido.';
+            emailMsg.textContent = I18N.t('Inserisci un indirizzo e-mail valido.');
             valid = false;
           }
           var mobile = iti ? iti.getNumber() : form.phone.value.trim();
           if (!mobile || (iti && !iti.isValidNumber())) {
-            phoneMsg.textContent = 'Inserisci un numero di telefono valido.';
+            phoneMsg.textContent = I18N.t('Inserisci un numero di telefono valido.');
             valid = false;
           }
           if (!terms) {
-            formMsg.textContent = 'Devi accettare i Termini e Condizioni e l\'Informativa sulla Privacy.';
+            formMsg.textContent = I18N.t('Devi accettare i Termini e Condizioni e l\'Informativa sulla Privacy.');
             valid = false;
           }
           if (!valid) return;
@@ -761,16 +783,16 @@
                 return;
               }
               if (data.errors) {
-                if (data.errors.email) emailMsg.textContent = data.errors.email;
-                if (data.errors.mobile) phoneMsg.textContent = data.errors.mobile;
-                formMsg.textContent = data.errors.firstname || data.errors.lastname || data.errors.terms || '';
+                if (data.errors.email) emailMsg.textContent = I18N.t(data.errors.email);
+                if (data.errors.mobile) phoneMsg.textContent = I18N.t(data.errors.mobile);
+                formMsg.textContent = I18N.t(data.errors.firstname || data.errors.lastname || data.errors.terms || '');
               } else {
-                formMsg.textContent = data.message || 'Registrazione momentaneamente non disponibile. Riprova più tardi.';
+                formMsg.textContent = I18N.t(data.message || 'Registrazione momentaneamente non disponibile. Riprova più tardi.');
               }
               setBusy(false);
             })
             .catch(function() {
-              formMsg.textContent = 'Errore di connessione. Riprova più tardi.';
+              formMsg.textContent = I18N.t('Errore di connessione. Riprova più tardi.');
               setBusy(false);
             });
         });
@@ -797,10 +819,10 @@
         const newComment = document.createElement('div');
         newComment.className = 'comment-item';
         newComment.innerHTML = `
-          <div class="c-avatar" style="background: #94a3b8">TU</div>
+          <div class="c-avatar" style="background: #94a3b8">${I18N.t('TU')}</div>
           <div class="c-main">
             <div class="c-bubble">
-              <div class="c-name" style="color: var(--brand-dark);">Ospite (Tu)</div>
+              <div class="c-name" style="color: var(--brand-dark);">${I18N.t('Ospite (Tu)')}</div>
               <div class="c-text"></div>
             </div>
           </div>
@@ -824,10 +846,11 @@
       document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('.currentYear').textContent = new Date().getFullYear();
         var fomoDateEl = document.getElementById('fomo-date-display');
-        if (fomoDateEl) {
-            var today = new Date();
-            fomoDateEl.textContent = today.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        function renderFomoDate() {
+          if (fomoDateEl) fomoDateEl.textContent = new Date().toLocaleDateString(I18N.locale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
+        renderFomoDate();
+        I18N.onChange(renderFomoDate);
       });
     </script>
 </body>

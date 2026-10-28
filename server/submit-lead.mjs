@@ -77,16 +77,6 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 }
 
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
-// Lead country from the visitor's IP (Cloudflare's CF-IPCountry header; the
-// site only accepts traffic through Cloudflare, which sets it): Italy → IT,
-// Spain → ES, anywhere else or unknown → LEAD_COUNTRY_FALLBACK (default GB).
-const FALLBACK_COUNTRY = /^[A-Z]{2}$/.test(process.env.LEAD_COUNTRY_FALLBACK || '')
-  ? process.env.LEAD_COUNTRY_FALLBACK
-  : 'GB';
-function leadCountry(req) {
-  const code = String(req.headers['cf-ipcountry'] || '').toUpperCase();
-  return code === 'IT' || code === 'ES' ? code : FALLBACK_COUNTRY;
-}
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
@@ -170,7 +160,9 @@ function validate(input) {
   const emailCheck = EmailCheck.check(data.email);
   if (!emailCheck.ok && emailCheck.reason !== 'typo') errors.email = EmailCheck.MESSAGES[emailCheck.reason];
   const phone = PhoneCheck.check(data.mobile, 'IT');
-  if (phone.ok) data.mobile = phone.e164;
+  // The lead API checks the mobile against country_code's numbering rules, so
+  // the country is the number's own (IT/ES/GB), not the visitor's location.
+  if (phone.ok) { data.mobile = phone.e164; data.country = phone.country; }
   else errors.mobile = PhoneCheck.MESSAGES[phone.reason];
   if (input.terms !== true) errors.terms = 'Devi accettare i Termini e Condizioni.';
   if (data.click_id && !CLICK_ID_RE.test(data.click_id)) data.click_id = '';
@@ -226,7 +218,7 @@ const server = http.createServer(async (req, res) => {
     lastname: data.lastname,
     email: data.email,
     mobile: data.mobile,
-    country_code: leadCountry(req),
+    country_code: data.country,
     ip_address: ip,
     funnel: FUNNEL,
     offer_name: OFFER_NAME,
@@ -247,7 +239,9 @@ const server = http.createServer(async (req, res) => {
     const sent = `sent country_code=${payload.country_code} click_id=${payload.click_id || '-'}`;
     if (!upstream.ok || !result || result.success !== true) {
       const apiMessage = typeof result?.message === 'string' ? result.message.slice(0, 200) : 'non-JSON response';
-      console.warn(`[submit-lead] ${sent} → rejected status=${upstream.status} request_id=${result?.request_id ?? 'n/a'} message="${apiMessage}"`);
+      // Field names the API rejected, never their values.
+      const apiFields = result?.errors && typeof result.errors === 'object' ? Object.keys(result.errors).join(',') : '';
+      console.warn(`[submit-lead] ${sent} → rejected status=${upstream.status} request_id=${result?.request_id ?? 'n/a'} message="${apiMessage}" fields=${apiFields || '-'}`);
       if (upstream.status === 409) return send(res, 409, { success: false, message: DUPLICATE_ERROR });
       return send(res, 422, { success: false, message: REJECTED_ERROR });
     }

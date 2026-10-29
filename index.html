@@ -693,12 +693,13 @@
       }
 
       // Phone country and TradingView ticker follow the selected language
-      var PHONE_COUNTRY = { it: "it", es: "es", en: "gb" };
+      var PHONE_COUNTRY = { it: "it", es: "es", en: "gb", de: "de", ar: "sa" };
+      var TV_LOCALE = { it: "it", es: "es", en: "en", de: "de_DE", ar: "ar_AE" };
       I18N.onChange(function(lang) {
         if (iti && !document.querySelector("#phone").value.trim()) iti.setCountry(PHONE_COUNTRY[lang]);
         var tv = document.getElementById("tv-ticker");
         if (tv) {
-          var src = tv.getAttribute("src").replace(/locale=[a-z]+/, "locale=" + lang);
+          var src = tv.getAttribute("src").replace(/locale=[A-Za-z_]+/, "locale=" + TV_LOCALE[lang]);
           if (src !== tv.getAttribute("src")) tv.setAttribute("src", src);
         }
       });
@@ -710,10 +711,10 @@
         if (phoneInput && window.intlTelInput) {
           iti = window.intlTelInput(phoneInput, {
             initialCountry: PHONE_COUNTRY[I18N.lang],
-            // Only Italian, Spanish and UK mobile numbers are accepted.
-            onlyCountries: ["it", "es", "gb"],
+            // Only Italian, Spanish, UK, German and Saudi mobile numbers are accepted.
+            onlyCountries: ["it", "es", "gb", "de", "sa"],
             preferredCountries: [],
-            // Show the dial code (+39 / +34 / +44) next to the flag.
+            // Show the dial code (+39 / +34 / +44 / +49 / +966) next to the flag.
             separateDialCode: true,
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
           });
@@ -770,7 +771,7 @@
             emailMsg.textContent = I18N.t(EmailCheck.MESSAGES[emailCheck.reason]);
             valid = false;
           }
-          // Our own IT/ES/GB mobile rules (phone-check.js), so the check never
+          // Our own IT/ES/GB/DE/SA mobile rules (phone-check.js), so the check never
           // depends on intl-tel-input's utils.js having loaded from the CDN.
           var selected = iti ? iti.getSelectedCountryData().iso2 : PHONE_COUNTRY[I18N.lang];
           var phoneCheck = PhoneCheck.check(form.phone.value, String(selected || 'it').toUpperCase());

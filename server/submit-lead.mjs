@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import dns from 'node:dns/promises';
 
-// Same phone (IT/ES/GB mobile) and email rules the form uses in the browser.
+// Same phone (IT/ES/GB/DE/SA mobile) and email rules the form uses in the browser.
 const requireShared = createRequire(import.meta.url);
 const PhoneCheck = requireShared('../images/phone-check.js');
 const EmailCheck = requireShared('../images/email-check.js');
@@ -79,13 +79,14 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
 // Lead country from the visitor's IP (Cloudflare's CF-IPCountry header; the
 // site only accepts traffic through Cloudflare, which sets it): Italy → IT,
-// Spain → ES, anywhere else or unknown → LEAD_COUNTRY_FALLBACK (default GB).
+// Spain → ES, Germany → DE, Saudi Arabia → SA, anywhere else or unknown →
+// LEAD_COUNTRY_FALLBACK (default GB).
 const FALLBACK_COUNTRY = /^[A-Z]{2}$/.test(process.env.LEAD_COUNTRY_FALLBACK || '')
   ? process.env.LEAD_COUNTRY_FALLBACK
   : 'GB';
 function leadCountry(req) {
   const code = String(req.headers['cf-ipcountry'] || '').toUpperCase();
-  return code === 'IT' || code === 'ES' ? code : FALLBACK_COUNTRY;
+  return ['IT', 'ES', 'DE', 'SA'].includes(code) ? code : FALLBACK_COUNTRY;
 }
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';

@@ -1,15 +1,18 @@
 /*
- * Language switcher (IT / ES / EN) for static pages.
+ * Language switcher (IT / ES / EN / DE / AR) for static pages.
  *
  * Italian is the source language written in the HTML. Translations live in
- * window.I18N_DICT = { es: { "<italian>": "<spanish>" }, en: { ... } }, keyed by
+ * window.I18N_DICT = { es: { "<italian>": "<spanish>" }, en: { ... }, ... }, keyed by
  * the Italian text (whitespace collapsed). Text inside elements, placeholder /
  * alt / title / aria-label attributes and <title> are swapped in place, so
  * switching back to Italian restores the original markup.
  *
  * Language order: ?lang= in the URL (?lang=auto clears a choice), then the
  * visitor's own choice this browser session (site_lang_s cookie), then their country (site_geo cookie: IT → it,
- * ES → es, anything else or unknown → en).
+ * ES → es, DE → de, SA → ar, anything else or unknown → en).
+ *
+ * Arabic is right to left: <html dir="rtl"> is set while it is active, and the
+ * page stylesheet can target html[dir="rtl"] for layout fixes.
  *
  * Page scripts use I18N.t('italian string') for messages they create, and
  * I18N.onChange(fn) to re-render dynamic text (dates, counters) per language.
@@ -19,9 +22,9 @@
 (function () {
   'use strict';
 
-  var LANGS = ['it', 'es', 'en'];
-  var LOCALES = { it: 'it-IT', es: 'es-ES', en: 'en-GB' };
-  var NAMES = { it: 'Italiano', es: 'Español', en: 'English' };
+  var LANGS = ['it', 'es', 'en', 'de', 'ar'];
+  var LOCALES = { it: 'it-IT', es: 'es-ES', en: 'en-GB', de: 'de-DE', ar: 'ar-SA' };
+  var NAMES = { it: 'Italiano', es: 'Español', en: 'English', de: 'Deutsch', ar: 'العربية' };
   // Session cookie shared with the other sites on this domain (vettro reads it
   // server-side). It ends when the browser closes, so each new visit starts
   // from the visitor's location again.
@@ -34,6 +37,8 @@
   var ICONS = {
     it: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/></svg>',
     es: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#aa151b"/><rect y=".5" width="3" height="1" fill="#f1bf00"/></svg>',
+    de: '<svg viewBox="0 0 5 3" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#dd0000"/><rect y="2" width="5" height="1" fill="#ffce00"/></svg>',
+    ar: '<svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#006c35"/><rect x=".9" y=".55" width="1.2" height=".2" rx=".05" fill="#fff"/><rect x=".9" y="1.05" width="1.2" height=".08" fill="#fff"/></svg>',
     en: '<svg class="ls-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
   };
 
@@ -56,8 +61,10 @@
     // Cloudflare's CF-IPCountry header into the site_geo cookie.
     var g = document.cookie.match(/(?:^|;\s*)site_geo=([A-Za-z]{2})/);
     var country = g ? g[1].toUpperCase() : '';
-    return country === 'IT' ? 'it' : country === 'ES' ? 'es' : 'en';
+    var BY_COUNTRY = { IT: 'it', ES: 'es', DE: 'de', SA: 'ar' };
+    return BY_COUNTRY[country] || 'en';
   }
+  function dirOf(l) { return l === 'ar' ? 'rtl' : 'ltr'; }
   function save(l) {
     document.cookie = STORE_KEY + '=' + l + '; path=/; SameSite=Lax';
   }
@@ -70,6 +77,7 @@
   // don't see a flash of Italian. Safety timeout in case something fails.
   var root = document.documentElement;
   root.lang = lang;
+  root.dir = dirOf(lang);
   if (lang !== 'it') {
     root.classList.add('i18n-pending');
     var hide = document.createElement('style');
@@ -199,6 +207,7 @@
       if (u.searchParams.has('lang')) { u.searchParams.delete('lang'); history.replaceState(history.state, '', u); }
     } catch (e) {}
     root.lang = l;
+    root.dir = dirOf(l);
     apply(l);
     renderSwitchers();
     for (var i = 0; i < listeners.length; i++) {
@@ -215,13 +224,13 @@
     '.ls svg{width:20px;height:14px;border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.08)}' +
     '.ls svg.ls-globe{width:16px;height:16px;border-radius:0;box-shadow:none}' +
     '.ls-caret{font-size:10px;opacity:.6}' +
-    '.ls-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:150px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12)}' +
+    '.ls-menu{display:none;position:absolute;inset-inline-end:0;top:calc(100% + 6px);min-width:150px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12)}' +
     '.ls.open .ls-menu{display:block}' +
     '.ls-menu li{margin:0;padding:0;list-style:none;line-height:1.2}' +
     '.ls button{margin:0;font-family:inherit;line-height:1.2;text-transform:none;letter-spacing:normal;box-sizing:border-box}' +
-    '.ls-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:5px;background:none;color:#1a1a1a;font-size:14px;font-weight:500;text-align:left;cursor:pointer}' +
+    '.ls-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:5px;background:none;color:#1a1a1a;font-size:14px;font-weight:500;text-align:start;cursor:pointer}' +
     '.ls-menu button:hover,.ls-menu button:focus-visible{background:#f2f2f2}' +
-    '.ls-menu .ls-check{margin-left:auto;font-weight:700}' +
+    '.ls-menu .ls-check{margin-inline-start:auto;font-weight:700}' +
     '.ls-row{display:flex;gap:8px;flex-wrap:wrap}' +
     '.ls-row button{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(0,0,0,.15);border-radius:6px;background:#fff;color:#1a1a1a;font-size:14px;font-weight:600;cursor:pointer}' +
     '.ls-row button[aria-pressed="true"]{border-color:#1a1a1a;box-shadow:inset 0 0 0 1px #1a1a1a}' +

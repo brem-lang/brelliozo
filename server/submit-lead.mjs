@@ -77,17 +77,6 @@ if (!SUPABASE_URL || !AFFILIATE_API_KEY) {
 }
 
 const UPSTREAM = `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/submit-lead-nullypto`;
-// Lead country from the visitor's IP (Cloudflare's CF-IPCountry header; the
-// site only accepts traffic through Cloudflare, which sets it): Italy → IT,
-// Spain → ES, Germany → DE, Saudi Arabia → SA, anywhere else or unknown →
-// LEAD_COUNTRY_FALLBACK (default GB).
-const FALLBACK_COUNTRY = /^[A-Z]{2}$/.test(process.env.LEAD_COUNTRY_FALLBACK || '')
-  ? process.env.LEAD_COUNTRY_FALLBACK
-  : 'GB';
-function leadCountry(req) {
-  const code = String(req.headers['cf-ipcountry'] || '').toUpperCase();
-  return ['IT', 'ES', 'DE', 'SA'].includes(code) ? code : FALLBACK_COUNTRY;
-}
 const FUNNEL = 'brelliozo';
 const OFFER_NAME = 'brelliozo';
 const MAX_BODY_BYTES = 4096;
@@ -171,7 +160,7 @@ function validate(input) {
   const emailCheck = EmailCheck.check(data.email);
   if (!emailCheck.ok && emailCheck.reason !== 'typo') errors.email = EmailCheck.MESSAGES[emailCheck.reason];
   const phone = PhoneCheck.check(data.mobile, 'IT');
-  if (phone.ok) data.mobile = phone.e164;
+  if (phone.ok) Object.assign(data, { mobile: phone.e164, country: phone.country });
   else errors.mobile = PhoneCheck.MESSAGES[phone.reason];
   if (input.terms !== true) errors.terms = 'Devi accettare i Termini e Condizioni.';
   if (data.click_id && !CLICK_ID_RE.test(data.click_id)) data.click_id = '';
@@ -227,7 +216,9 @@ const server = http.createServer(async (req, res) => {
     lastname: data.lastname,
     email: data.email,
     mobile: data.mobile,
-    country_code: leadCountry(req),
+    // Lead country = the mobile's country: the API rejects a mobile that
+    // doesn't belong to country_code (a +49 number sent as GB always failed).
+    country_code: data.country,
     ip_address: ip,
     funnel: FUNNEL,
     offer_name: OFFER_NAME,

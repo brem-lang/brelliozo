@@ -196,6 +196,13 @@
       input[type="tel"] { width: 100% !important; }
       /* Flag + dial code (+39 / +34 / +44): leave room for intl-tel-input's selector */
       .iti--separate-dial-code input[type="tel"] { padding-left: 86px !important; }
+      /* Arabic (RTL): keep the dial code on the left of the number, reading +966.
+         Undoes intl-tel-input's own [dir=rtl] rules. */
+      html[dir="rtl"] .iti { direction: ltr; }
+      html[dir="rtl"] .iti .iti__flag-container { right: auto; left: 0; }
+      html[dir="rtl"] .iti.iti--show-flags .iti__selected-dial-code { margin-right: 0; margin-left: 6px; }
+      html[dir="rtl"] .iti .iti__arrow { margin-right: 0; margin-left: 6px; }
+      html[dir="rtl"] .iti input[type="tel"] { padding-right: 12px !important; }
 
       .kc-submit { background: var(--brand-dark) !important; color: white; padding: 15px; border: none; border-radius: 2px !important; font-weight: 900; cursor: pointer; font-size: 16px !important; width: 100%; text-transform: uppercase; letter-spacing: 1px !important; transition: background 0.2s; }
       .kc-submit:hover { background: var(--brand-accent) !important; }
